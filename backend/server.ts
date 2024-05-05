@@ -26,8 +26,10 @@ export class Server {
             try {
                 const results = await Database.query('SELECT * FROM tasks');
                 res.json(results);
-            } catch (err) {
-                Database.handleDatabaseError(res, err);
+            } catch (err: any) {
+                {
+                    Database.handleDatabaseError(res, err);
+                }
             }
         });
 
@@ -39,24 +41,45 @@ export class Server {
             try {
                 const result = await Database.query('INSERT INTO tasks (title) VALUES (?)', [title]);
                 res.status(201).send({ id: result.insertId, title: title, completed: false });
-            } catch (err) {
+            } catch (err: any) {
                 Database.handleDatabaseError(res, err);
             }
         });
 
         this.app.put('/tasks/:id', async (req, res) => {
-            const { completed } = req.body;
+            const { completed, title } = req.body;
             const { id } = req.params;
             try {
-                const result = await Database.query('UPDATE tasks SET completed = ? WHERE id = ?', [completed, id]);
+                let query = 'UPDATE tasks SET';
+                const params = [];
+                const updates = [];
+
+                if (completed !== undefined) {
+                    updates.push('completed = ?');
+                    params.push(completed);
+                }
+                if (title !== undefined) {
+                    updates.push('title = ?');
+                    params.push(title);
+                }
+
+                if (updates.length === 0) {
+                    return res.status(400).send('No fields to update.');
+                }
+
+                query += ' ' + updates.join(', ') + ' WHERE id = ?';
+                params.push(id);
+
+                const result = await Database.query(query, params);
                 if (result.affectedRows === 0) {
                     return res.status(404).send('Task not found.');
                 }
                 res.send('Task updated successfully.');
-            } catch (err) {
+            } catch (err: any) {
                 Database.handleDatabaseError(res, err);
             }
         });
+
 
         this.app.delete('/tasks/:id', async (req, res) => {
             const { id } = req.params;
@@ -66,7 +89,7 @@ export class Server {
                     return res.status(404).send('Task not found.');
                 }
                 res.send('Task deleted successfully.');
-            } catch (err) {
+            } catch (err: any) {
                 Database.handleDatabaseError(res, err);
             }
         });

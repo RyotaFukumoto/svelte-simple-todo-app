@@ -16,13 +16,13 @@
     fetchTasks();
   });
 
-  async function fetchTasks(): Promise<void> {
+  const fetchTasks = async (): Promise<void> => {
     const response = await fetch('http://localhost:3000/tasks');
     const data: Task[] = await response.json();
     tasks.set(data);
   }
 
-	async function addTask(): Promise<void> {
+	const addTask = async (): Promise<void> => {
     if (!newTaskTitle.trim()) return;
     const response = await fetch('http://localhost:3000/tasks', {
       method: 'POST',
@@ -37,18 +37,20 @@
     }
 	}
 
-  async function toggleTaskCompletion(task: Task): Promise<void> {
+  const updateTask = async (task:Task): Promise<void> => {
     const response = await fetch(`http://localhost:3000/tasks/${task.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ completed: !task.completed }),
+      body: JSON.stringify({ title: task.title, completed: !task.completed }),
     });
     if (response.ok) {
       fetchTasks();
+    } else {
+      console.error('Failed to update task:', await response.text());
     }
   }
 
-  async function deleteTask(taskId: number): Promise<void> {
+  const deleteTask = async (taskId: number): Promise<void> => {
     const response = await fetch(`http://localhost:3000/tasks/${taskId}`, {
       method: 'DELETE',
     });
@@ -65,8 +67,8 @@
   <ul>
     {#each $tasks as task (task.id)}
       <li>
-        <input type="checkbox" checked={task.completed} on:click={() => toggleTaskCompletion(task)} />
-        {task.title}
+        <input type="checkbox" bind:checked={task.completed} on:input={() => updateTask(task)} />
+        <input type="text" bind:value={task.title} on:input={() => updateTask(task)} />
         <button on:click={() => deleteTask(task.id)}>Delete</button>
       </li>
     {/each}
